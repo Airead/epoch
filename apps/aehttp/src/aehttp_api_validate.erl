@@ -188,7 +188,7 @@ prepare_param_({"maximum", Max}, Value, Name, _) ->
     end.
 
 get_param_value("body", _, Req0) ->
-    case cowboy_req:read_body(Req0) of
+    case read_body(Req0, <<>>) of
         {ok, <<>>, Req} -> {ok, <<>>, Req};
         {ok, Body, Req} ->
             try
@@ -211,6 +211,11 @@ get_param_value("path", Name, Req) ->
     Value = cowboy_req:binding(to_binding(Name), Req),
     {ok, Value, Req}.
 
+read_body(Req0, Acc) ->
+    case cowboy_req:read_body(Req0) of
+        {ok, Data, Req} -> {ok, <<Acc/binary, Data/binary>>, Req};
+        {more, Data, Req} -> read_body(Req, <<Acc/binary, Data/binary>>)
+    end.
 
 param_error({enum, Value}, Name) ->
     param_error_(Name, #{error => not_in_enum, data => Value});
